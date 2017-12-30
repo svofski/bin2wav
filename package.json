@@ -1,0 +1,14 @@
+{
+  "name": "bin2wav",
+  "version": "1.0.0",
+  "description": "bin to wav for exUSSR 8-bit home computers",
+  "main": "bin2wav.js",
+  "bin": {
+      "bin2wav": "./bin2wav.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "svofski@gmail.com",
+  "license": "ISC"
+}

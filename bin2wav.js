@@ -67,7 +67,7 @@ try {
     console.log('   krista-rom      Криста-2');
     console.log('   specialist-rks  Специалист .RKS');
     console.log('   specialist-mon  Специалист .MON');
-    return;
+    process.exit(0);
 }
 console.log('Input file:    ', romFile);
 console.log('Output file:   ', outFile);

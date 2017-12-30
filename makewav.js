@@ -99,7 +99,7 @@ Wav.prototype.getWavUint8Array = function(buffer){
     /* Copy header */
     var dptr = 0;
     for (var i = 0; i < WAV_HEADER_SIZE; ++i) {
-        byteBuffer[dptr++] = 0377 & intBuffer[i];
+        byteBuffer[dptr++] = 0xff & intBuffer[i];
         byteBuffer[dptr++] = intBuffer[i] >> 8;
     }
 
