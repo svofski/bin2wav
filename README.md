@@ -13,4 +13,4 @@ $ npm install -g
 
 Альтернативно можно просто запустить ./bin2wav.js
 
-Исполняемый файл для Windows получается с помощью nexe.
+Исполняемый файл для Windows получается с помощью nexe. Ссылка: https://github.com/svofski/bin2wav/releases/latest
