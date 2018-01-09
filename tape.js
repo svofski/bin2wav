@@ -2,7 +2,7 @@
 
 var wavmodule = require('./makewav');
 
-var TapeFormat = function(fmt, forfile) {
+var TapeFormat = function(fmt, forfile, konst) {
     this.format = null;
     this.variant = null;
     this.speed = 12;
@@ -13,7 +13,7 @@ var TapeFormat = function(fmt, forfile) {
         case '86rk-bin':
             this.format = TapeFormat.prototype.nekrosha;
             this.variant = 'rk';
-            this.speed = 12;
+            this.speed = konst || 12;
             break;
         case 'mikrosha-bin':
         case 'microsha-bin':
@@ -24,27 +24,27 @@ var TapeFormat = function(fmt, forfile) {
         case 'nekro-bin':
             this.format = TapeFormat.prototype.nekrosha;
             this.variant = 'mikrosha';
-            this.speed = 12;
+            this.speed = konst || 12;
             break;
         case 'partner-bin':
             this.format = TapeFormat.prototype.nekrosha;
             this.variant = 'rk';
-            this.speed = 8;
+            this.speed = konst || 8;
             break;
         case 'v06c-rom':
             this.format = TapeFormat.prototype.v06c_rom;
-            this.speed = 8;
+            this.speed = konst || 7;
             break;
         case 'krista-rom':
             this.format = TapeFormat.prototype.krista;
-            this.speed = 8;
+            this.speed = konst || 7;
             break;
         case 'ÓÐÅÃÉÁÌÉÓÔß-rks': // кои-8 факъ е
         case 'spetsialist-rks':
         case 'specialist-rks':
         case 'spec-rks':
             this.format = TapeFormat.prototype.specialist;
-            this.speed = 9;
+            this.speed = konst || 9;
             this.variant = null;
             break;
         case 'ÓÐÅÃÉÁÌÉÓÔß-mon': // кои-8 факъ е
@@ -52,7 +52,7 @@ var TapeFormat = function(fmt, forfile) {
         case 'specialist-mon':
         case 'spec-mon':
             this.format = TapeFormat.prototype.specialist;
-            this.speed = 9;
+            this.speed = konst || 9;
             this.variant = "name-header";
             break;
     }

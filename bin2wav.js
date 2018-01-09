@@ -8,6 +8,7 @@ var outFile = undefined;    /* output wav file name */
 var loadAddr = 256;          /* load address */
 var tapeName = undefined;   /* file name in the tape headers */
 var machine = 'v06c-rom';
+var konst = undefined;
 
 try {
     var borrow = null;
@@ -37,6 +38,10 @@ try {
                     borrow = function(v) {
                         machine = v;
                     };
+                case 'c':
+                    borrow = function(v) {
+                        konst = eval(v);
+                    };
             }
         } else {
             if (!romFile) {
@@ -59,6 +64,7 @@ try {
     console.log('   -s load_addr in C-like notation e.g. 256, 0x100. Default 0x100.');
     console.log('   -n tape_name for Vector-06C name to put in tape headers. Default: rom file name');
     console.log('   -m machine-format (default v06c-rom)'); 
+    console.log('   -c speed constant (sane values 5..12)');
     console.log('Available formats:');
     console.log('   rk-bin          Радио 86РК');
     console.log('   mikrosha-bin    Микроша');
@@ -81,7 +87,8 @@ try {
     console.log('Error reading input file: ', romFile);
     process.exit(1);
 }
-var vectortape = tapeformat.TapeFormat(machine);
+var vectortape = tapeformat.TapeFormat(machine, false, konst);
+console.log('Speed:         ', vectortape.speed);
 var wav = vectortape.format(romData, loadAddr, tapeName).makewav();
 
 try {
