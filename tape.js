@@ -363,8 +363,8 @@ TapeFormat.prototype.specialist = function(mem, org, name) {
 
 
 module.exports = {
-    TapeFormat: function(fmt, forfile) {
-        return new TapeFormat(fmt, forfile);
+    TapeFormat: function(fmt, forfile, konst) {
+        return new TapeFormat(fmt, forfile, konst);
     }
 };
 
