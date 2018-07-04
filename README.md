@@ -14,3 +14,18 @@ $ npm install -g
 Альтернативно можно просто запустить ./bin2wav.js
 
 Исполняемый файл для Windows получается с помощью nexe. Ссылка: https://github.com/svofski/bin2wav/releases/latest
+
+
+Форматы данных
+--------------
+  |    |    |
+  |---------------|-------|
+  | rk-bin          | Радио 86РК              |
+  | mikrosha-bin    | Микроша                 |  
+|partner-bin     |Партнер |
+|v06c-rom        |Вектор-06ц ROM/R0M/VEC |
+|v06c-cas        |Вектор-06ц CAS |
+|v06c-bas        |Вектор-06ц BAS |
+|krista-rom      |Криста-2 |
+|specialist-rks  |Специалист .RKS |
+|specialist-mon  |Специалист .MON |
