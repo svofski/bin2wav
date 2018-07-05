@@ -74,6 +74,7 @@ try {
     console.log('   v06c-rom        Вектор-06ц ROM');
     console.log('   v06c-cas        Вектор-06ц CAS');
     console.log('   v06c-bas        Вектор-06ц BAS');
+    console.log('   v06c-edasm      Вектор-06ц EDASM');
     console.log('   krista-rom      Криста-2');
     console.log('   specialist-rks  Специалист .RKS');
     console.log('   specialist-mon  Специалист .MON');
