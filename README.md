@@ -26,6 +26,7 @@ $ npm install -g
 |v06c-rom        |Вектор-06ц ROM/R0M/VEC |
 |v06c-cas        |Вектор-06ц CAS |
 |v06c-bas        |Вектор-06ц BAS |
+|v06c-mon        |Вектор-06ц MON |
 |v06c-edasm      |Вектор-06ц EDASM |
 |krista-rom      |Криста-2 |
 |specialist-rks  |Специалист .RKS |
