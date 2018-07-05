@@ -38,10 +38,12 @@ try {
                     borrow = function(v) {
                         machine = v;
                     };
+                    break;
                 case 'c':
                     borrow = function(v) {
                         konst = eval(v);
                     };
+                    break;
             }
         } else {
             if (!romFile) {
@@ -69,7 +71,9 @@ try {
     console.log('   rk-bin          Радио 86РК');
     console.log('   mikrosha-bin    Микроша');
     console.log('   partner-bin     Партнер');
-    console.log('   v06c-rom        Вектор-06ц');
+    console.log('   v06c-rom        Вектор-06ц ROM');
+    console.log('   v06c-cas        Вектор-06ц CAS');
+    console.log('   v06c-bas        Вектор-06ц BAS');
     console.log('   krista-rom      Криста-2');
     console.log('   specialist-rks  Специалист .RKS');
     console.log('   specialist-mon  Специалист .MON');

@@ -2,6 +2,8 @@
 
 var wavmodule = require('./makewav');
 
+const END_PADDING = 128;
+
 var TapeFormat = function(fmt, forfile, konst) {
     this.format = null;
     this.variant = null;
@@ -34,6 +36,22 @@ var TapeFormat = function(fmt, forfile, konst) {
         case 'v06c-rom':
             this.format = TapeFormat.prototype.v06c_rom;
             this.speed = konst || 7;
+            break;
+        case 'v06c-cas':
+            this.format = TapeFormat.prototype.v06c_cas;
+            this.speed = konst || 8;
+            break;
+        case 'v06c-bas':
+            this.format = TapeFormat.prototype.v06c_bas;
+            this.speed = konst || 8;
+            break;
+        case 'v06c-mon':
+            this.format = TapeFormat.prototype.v06c_mon;
+            this.speed = konst || 8;
+            break;
+        case 'v06c-edasm':
+            this.format = TapeFormat.prototype.v06c_edasm;
+            this.speed = konst || 17;
             break;
         case 'krista-rom':
             this.format = TapeFormat.prototype.krista;
@@ -148,12 +166,13 @@ TapeFormat.prototype.makewav = function()
     var params = {sampleRate:22050, channels: 1};
     wav = wavmodule.Wav(params);
     wav.setBuffer(encoded);
-    var stream = wav.getBuffer(encoded.length);
+    var stream = wav.getBuffer(encoded.length + wav.getHeaderSize());
     return stream;
 }
 
+
 TapeFormat.prototype.biphase = function(data, halfperiod) {
-    var w = new Uint8Array(data.length * 8 * 2 * halfperiod);
+    var w = new Uint8Array(data.length * 8 * 2 * halfperiod + END_PADDING);
     const period = halfperiod * 2;
     var dptr = 0;
     for (var i = 0, end = data.length; i < end; i += 1) {
@@ -165,6 +184,9 @@ TapeFormat.prototype.biphase = function(data, halfperiod) {
             phase = phase ^ 255;
             for (var q = 0; q < halfperiod; ++q) w[dptr++] = phase;
         }
+    }
+    for (var i = 0; i < END_PADDING; ++i) {
+        w[dptr++] = 128;
     }
     return w;
 };
@@ -245,6 +267,114 @@ TapeFormat.prototype.v06c_rom = function(mem, org, name) {
     this.data = data;
     return this;
 };
+
+/* Vector-06C BASIC CAS 
+ * CAS is a pre-formatted BAS/MON/whatever file, only needs a preamble
+ */
+TapeFormat.prototype.v06c_cas = function(mem, org, name) {
+    var data = new Uint8Array(mem.length + 257);
+    var dofs = 0;
+    for (var i = 0; i < 256; ++i) {
+        data[dofs++] = 0;
+    }
+    data[dofs++] = 0xe6;
+    for (var i = 0; i < mem.length; ++i, ++dofs) {
+        data[dofs] = mem[i];
+    }
+    this.data = data;
+    return this;
+}
+
+/* Vector-06C BASIC BAS
+ * BAS needs to be wrapped in CAS container, then fed to v06c_cas
+ */
+TapeFormat.prototype.v06c_bas = function(mem, org, name) {
+    if (name.length > 128) name = name.substring(0, 128);
+
+    var data = new Uint8Array(4 + name.length + 3 + 256 + 5 + mem.length + 2);
+    var dofs = 0;
+    for (var i = 0; i < 4; ++i) data[dofs++] = 0xd3;
+    for (var i = 0; i < name.length; ++i) data[dofs++] = name.charCodeAt(i);
+    for (var i = 0; i < 3; ++i) data[dofs++] = 0;
+    for (var i = 0; i < 256; ++i) data[dofs++] = 0x55;
+    data[dofs++] = 0xe6;
+    for (var i = 0; i < 3; ++i) data[dofs++] = 0xd3;
+    data[dofs++] = 0;
+
+    // payload
+    var cs = 0;
+    for (var i = 0; i < mem.length; ++i) {
+        data[dofs++] = mem[i];
+        cs = 0xffff & (cs + mem[i]);
+    }
+    data[dofs++] = cs & 0xff;
+    data[dofs++] = (cs >> 8) & 0xff;
+
+    return this.v06c_cas(data, 0, name);
+}
+
+TapeFormat.prototype.v06c_mon = function(mem, org, name) {
+    if (name.length > 11) name = name.substring(0, 128);
+
+    var data = new Uint8Array(4 + name.length + 3 + 256 + 1 + 4 +
+        mem.length + 1);
+    var dofs = 0;
+    for (var i = 0; i < 4; ++i) data[dofs++] = 0xd2;
+    for (var i = 0; i < name.length; ++i) data[dofs++] = name.charCodeAt(i);
+    for (var i = 0; i < 3; ++i) data[dofs++] = 0;   // name terminator
+    for (var i = 0; i < 256; ++i) data[dofs++] = 0; // payload preamble
+    data[dofs++] = 0xe6;
+    data[dofs++] = (org >> 8) & 0xff;               // big-endian load start
+    data[dofs++] = org & 0xff;
+    data[dofs++] = ((org + mem.length - 1) >> 8) & 0xff;// big-endian load end
+    data[dofs++] = (org + mem.length - 1) & 0xff;
+
+    var cs = 0;
+    for (var i = 0; i < mem.length; ++i) {
+        data[dofs++] = mem[i];
+        cs = 0xff & (cs + mem[i]);
+    }
+    data[dofs++] = cs;
+
+    return this.v06c_cas(data, 0, name);
+}
+
+/* EDASM text file format */
+TapeFormat.prototype.v06c_edasm = function(mem, org, name) {
+    var nibbler = function(b) {
+        return ((b << 4) & 0xf0) | ((b >> 4) & 0x0f);
+    };
+
+    var data = new Uint8Array(200 + 5 + name.length + 256 + 1 + 2 +
+        mem.length + 1 + 2);
+    var dofs = 0;
+
+    /* Preamble */
+    for (var i = 0; i < 200; ++i) {
+        data[dofs++] = ((Math.trunc(i / 25) % 2) === 0) ? 0x00 : 0x55;
+    }
+
+    for (var i = 0; i < 5; ++i) data[dofs++] = 0xe6;
+    for (var i = 0; i < name.length; ++i) data[dofs++] = name.charCodeAt(i);
+    for (var i = 0; i < 256; ++i) data[dofs++] = 0;
+    data[dofs++] = 0xe6;
+
+    var l = mem.length;
+    data[dofs++] = nibbler(l & 0xff);
+    data[dofs++] = nibbler((l >> 8) & 0xff);
+    
+    var fecksum = 0;
+    for (var i = 0; i < mem.length; ++i) {
+        data[dofs++] = mem[i];
+        fecksum = 0xffff & (fecksum + mem[i]);
+    }
+    data[dofs++] = 0xff;
+    data[dofs++] = fecksum & 0xff;
+    data[dofs++] = (fecksum >> 8) & 0xff;
+
+    this.data = data;
+    return this;
+}
 
 /* Krista: Vector-06c ugly sister.
  *

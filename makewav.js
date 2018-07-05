@@ -61,6 +61,11 @@ Wav.prototype.eof = function(){
 
 const WAV_HEADER_SIZE = 22;
 
+Wav.prototype.getHeaderSize = function()
+{
+    return WAV_HEADER_SIZE;
+}
+
 Wav.prototype.getWavUint8Array = function(buffer){
     var intBuffer = new Int16Array(WAV_HEADER_SIZE);
     var byteBuffer = new Uint8Array(buffer.length + WAV_HEADER_SIZE * 2);
