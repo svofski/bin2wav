@@ -28,6 +28,7 @@ $ npm install -g
 |v06c-bas        |Вектор-06ц BAS |
 |v06c-mon        |Вектор-06ц MON |
 |v06c-edasm      |Вектор-06ц EDASM |
+|v06c-savedos    |Вектор-06ц SAVEDOS |
 |krista-rom      |Криста-2 |
 |specialist-rks  |Специалист .RKS |
 |specialist-mon  |Специалист .MON |

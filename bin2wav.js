@@ -76,6 +76,7 @@ try {
     console.log('   v06c-bas        Вектор-06ц BAS');
     console.log('   v06c-mon        Вектор-06ц MON');
     console.log('   v06c-edasm      Вектор-06ц EDASM');
+    console.log('   v06c-savedos    Вектор-06ц SAVEDOS');
     console.log('   krista-rom      Криста-2');
     console.log('   specialist-rks  Специалист .RKS');
     console.log('   specialist-mon  Специалист .MON');

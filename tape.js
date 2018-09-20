@@ -53,6 +53,10 @@ var TapeFormat = function(fmt, forfile, konst) {
             this.format = TapeFormat.prototype.v06c_edasm;
             this.speed = konst || 17;
             break;
+        case 'v06c-savedos':
+            this.format = TapeFormat.prototype.v06c_savedos;
+            this.speed = konst || 6;
+            break;
         case 'krista-rom':
             this.format = TapeFormat.prototype.krista;
             this.speed = konst || 7;
@@ -371,6 +375,47 @@ TapeFormat.prototype.v06c_edasm = function(mem, org, name) {
     data[dofs++] = 0xff;
     data[dofs++] = fecksum & 0xff;
     data[dofs++] = (fecksum >> 8) & 0xff;
+
+    this.data = data;
+    return this;
+}
+
+TapeFormat.prototype.v06c_savedos = function(mem, org, name) {
+    var data = new Uint8Array(mem.length + 256 + 1 + 4 + 1 + 11);
+
+    var cs = 0;
+
+    /* Preamble & sync */
+    var dptr = 0;
+    for (var i = 0; i < 256; ++i) {
+        data[dptr++] = 0;
+    }
+    data[dptr++] = 0xe6;
+
+    /* Start addr big-endian */
+    data[dptr++] = (org >> 8) & 0xff;
+    data[dptr++] = org & 0xff;
+    /* End addr big-endian */ 
+    data[dptr++] = ((org + mem.length - 1) >> 8) & 0xff;
+    data[dptr++] = (org + mem.length - 1) & 0xff;
+
+    for (var i = 0; i < mem.length; ++i) {
+        let octet = mem[i];
+        data[dptr++] = octet;
+        cs = (cs + octet) & 0xff;
+    }
+
+    data[dptr++] = cs;
+
+    var path = name.split(/[\\\/]/);
+    var filename = path[path.length - 1].toUpperCase();
+    var fext = filename.split('.');
+    if (fext.length < 2) {
+        fext.push("");
+    }
+
+    for (var i = 0; i < 8; ++i) data[dptr++] = fext[0].charCodeAt(i) || 0x20;
+    for (var i = 0; i < 3; ++i) data[dptr++] = fext[1].charCodeAt(i) || 0x20;
 
     this.data = data;
     return this;
