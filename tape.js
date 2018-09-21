@@ -55,7 +55,7 @@ var TapeFormat = function(fmt, forfile, konst) {
             break;
         case 'v06c-savedos':
             this.format = TapeFormat.prototype.v06c_savedos;
-            this.speed = konst || 6;
+            this.speed = konst || 9;
             break;
         case 'krista-rom':
             this.format = TapeFormat.prototype.krista;
@@ -381,7 +381,7 @@ TapeFormat.prototype.v06c_edasm = function(mem, org, name) {
 }
 
 TapeFormat.prototype.v06c_savedos = function(mem, org, name) {
-    var data = new Uint8Array(mem.length + 256 + 1 + 4 + 1 + 11);
+    var data = new Uint8Array(mem.length + 256 + 1 + 4 + 1 + 12);
 
     var cs = 0;
 
@@ -414,8 +414,9 @@ TapeFormat.prototype.v06c_savedos = function(mem, org, name) {
         fext.push("");
     }
 
-    for (var i = 0; i < 8; ++i) data[dptr++] = fext[0].charCodeAt(i) || 0x20;
-    for (var i = 0; i < 3; ++i) data[dptr++] = fext[1].charCodeAt(i) || 0x20;
+    for (var i = 0; i < 8; ++i) cs += data[dptr++] = fext[0].charCodeAt(i) || 0x20;
+    for (var i = 0; i < 3; ++i) cs += data[dptr++] = fext[1].charCodeAt(i) || 0x20;
+    data[dptr++] = cs & 0xff;
 
     this.data = data;
     return this;
