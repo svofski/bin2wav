@@ -9,6 +9,8 @@ var loadAddr = 256;          /* load address */
 var tapeName = undefined;   /* file name in the tape headers */
 var machine = 'v06c-rom';
 var konst = undefined;
+var leader_length = 256;
+var sampleRate = 22050;
 
 try {
     var borrow = null;
@@ -44,6 +46,16 @@ try {
                         konst = eval(v);
                     };
                     break;
+                case 'l':
+                    borrow = function(v) {
+                        leader_length = eval(v);
+                    };
+                    break;
+                case 'r':
+                    borrow = function(v) {
+                        sampleRate = eval(v);
+                    };
+                    break;
             }
         } else {
             if (!romFile) {
@@ -66,9 +78,12 @@ try {
     console.log('   -s load_addr in C-like notation e.g. 256, 0x100. Default 0x100.');
     console.log('   -n tape_name for Vector-06C name to put in tape headers. Default: rom file name');
     console.log('   -m machine-format (default v06c-rom)'); 
-    console.log('   -c speed constant (sane values 5..12)');
+    console.log('   -l leader length (default 256)');
+    console.log('   -r sample rate (default 22050)');
+    console.log('   -c speed constant (sane values 5..12 for sample rate 22050)');
     console.log('Available formats:');
-    console.log('   rk-bin          Радио 86РК');
+    console.log('   rk-bin          Радио 86РК raw');
+    console.log('   rk-rk           Радио 86РК .rk (заголовки в файле)');
     console.log('   mikrosha-bin    Микроша');
     console.log('   partner-bin     Партнер');
     console.log('   v06c-rom        Вектор-06ц ROM');
@@ -87,6 +102,8 @@ console.log('Output file:   ', outFile);
 console.log('Load address:  ', "0x" + loadAddr.toString(16));
 console.log('Tape name:     ', tapeName);
 console.log('Tape format:   ', machine);
+console.log('Leader length: ', leader_length);
+console.log('Sample rate:   ', sampleRate);
 
 try {
     var romData = fs.readFileSync(romFile);
@@ -94,7 +111,7 @@ try {
     console.log('Error reading input file: ', romFile);
     process.exit(1);
 }
-var vectortape = tapeformat.TapeFormat(machine, false, konst);
+var vectortape = tapeformat.TapeFormat(machine, false, konst, leader_length, sampleRate);
 console.log('Speed:         ', vectortape.speed);
 var wav = vectortape.format(romData, loadAddr, tapeName).makewav();
 

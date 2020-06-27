@@ -4,17 +4,23 @@ var wavmodule = require('./makewav');
 
 const END_PADDING = 128;
 
-var TapeFormat = function(fmt, forfile, konst) {
+var TapeFormat = function(fmt, forfile, konst, leader, sampleRate) {
     this.format = null;
     this.variant = null;
     this.speed = 12;
     this.forfile = forfile || false; /* true if no leaders, no sync bytes */
+    this.leader_length = leader || 256;
+    this.sampleRate = sampleRate || 22050;
     switch (fmt) {
         case 'rk-bin':
         case 'rk86-bin':
         case '86rk-bin':
             this.format = TapeFormat.prototype.nekrosha;
             this.variant = 'rk';
+            this.speed = konst || 12;
+            break;
+        case 'rk-rk':
+            this.format = TapeFormat.prototype.rkrk;
             this.speed = konst || 12;
             break;
         case 'mikrosha-bin':
@@ -82,16 +88,69 @@ var TapeFormat = function(fmt, forfile, konst) {
     return this;
 }
 
-/* 
- * Элемент  Размер, байт 
- * Ракорд (нулевые байты)   256 
- * Синхробайт (E6h)         1 
- * Начальный адрес в ОЗУ    2 
- * Конечный адрес в ОЗУ     2 
- * Данные   (конечный адрес - начальный адрес + 1) 
- * Ракорд (нулевые байты)   2 
- * Синхробайт (E6h)         1 
- * Контрольная сумма        2 
+/*
+ * Элемент  Размер, байт
+ * Ракорд (нулевые байты)   256
+ * Синхробайт (E6h)         1
+ * Начальный адрес в ОЗУ    2  -- отсюда и дальше как есть из файла ---\
+ * Конечный адрес в ОЗУ     2
+ * Данные   (конечный адрес - начальный адрес + 1)
+ * Ракорд (нулевые байты)   2
+ * Синхробайт (E6h)         1
+ * Контрольная сумма        2
+ * 0 0 0 0 0 svo: pad with some zeroes in the end
+ */
+TapeFormat.prototype.rkrk = function(mem, org, name) {
+    var data = new Uint8Array(mem.length + this.leader_length + 1);
+
+    // rk-style checksum
+    var cs_hi = 0;
+    var cs_lo = 0;
+
+    // microsha-style checksum
+    var csm_hi = 0;
+    var csm_lo = 0;
+
+    var dptr = 0;
+    if (!this.forfile) {
+        for (var i = 0; i < this.leader_length; ++i) {
+            data[dptr++] = 0;
+        }
+        data[dptr++] = 0xe6;
+    }
+
+    for (var i = 0; i < mem.length; ++i) {
+        let octet = mem[i];
+        data[dptr++] = octet;
+        cs_lo += octet;
+        if (i < mem.length - 1) {
+            cs_hi += octet + ((cs_lo >> 8) & 0xff);
+        }
+        cs_lo &= 0xff;
+
+        if (i % 2 === 0) {
+            csm_lo ^= octet;
+        } else {
+            csm_hi ^= octet;
+        }
+    }
+
+    this.data = data;
+    return this;
+};
+
+
+
+/*
+ * Элемент  Размер, байт
+ * Ракорд (нулевые байты)   256
+ * Синхробайт (E6h)         1
+ * Начальный адрес в ОЗУ    2
+ * Конечный адрес в ОЗУ     2
+ * Данные   (конечный адрес - начальный адрес + 1)
+ * Ракорд (нулевые байты)   2
+ * Синхробайт (E6h)         1
+ * Контрольная сумма        2
  * 0 0 0 0 0 svo: pad with some zeroes in the end
  */
 TapeFormat.prototype.nekrosha = function(mem, org, name) {
@@ -135,7 +194,7 @@ TapeFormat.prototype.nekrosha = function(mem, org, name) {
     }
 
     //console.log('checksum rk=', Util.hex8(cs_hi&0377), Util.hex8(cs_lo&0377));
-    //console.log('checksum microsha=', Util.hex8(csm_hi&0377), 
+    //console.log('checksum microsha=', Util.hex8(csm_hi&0377),
     //        Util.hex8(csm_lo&0377));
 
     if (this.variant === 'mikrosha') {
@@ -167,7 +226,7 @@ TapeFormat.prototype.nekrosha = function(mem, org, name) {
 TapeFormat.prototype.makewav = function()
 {
     var encoded = TapeFormat.prototype.biphase(this.data, this.speed || 12);
-    var params = {sampleRate:22050, channels: 1};
+    var params = {sampleRate:this.sampleRate, channels: 1};
     wav = wavmodule.Wav(params);
     wav.setBuffer(encoded);
     var stream = wav.getBuffer(encoded.length + wav.getHeaderSize());
@@ -197,10 +256,10 @@ TapeFormat.prototype.biphase = function(data, halfperiod) {
 
 /* 4[ 25[00] 25[55] ]  record preamble
  * 16[00]   block preamble
- *  4[55] [E6] 
+ *  4[55] [E6]
  *      4[00] 25[filename] 2[00]  [hi(addr)] [block count] [block number] [cs0]
  *  4[00] [E6]
- *      [80] [cs0] 
+ *      [80] [cs0]
  *      32[data] [checksum_data]
  *  4[00] [E6]
  *      [81] [cs0]
@@ -210,7 +269,7 @@ TapeFormat.prototype.biphase = function(data, halfperiod) {
  *      [87] [cs0]
  *      32[data] [checksum_data]
  *
- * Sizes: 
+ * Sizes:
  *      record preamble                 =200
  *
  *      one block:
@@ -237,16 +296,16 @@ TapeFormat.prototype.v06c_rom = function(mem, org, name) {
         var cs0 = 0;
 
         /* Block preamble */
-        for (var i = 0; i < 16; ++i) data[dofs++] = 0;  
+        for (var i = 0; i < 16; ++i) data[dofs++] = 0;
         /* Name subblock id */
-        for (var i = 0; i < 4; ++i) data[dofs++] = 0x55; 
+        for (var i = 0; i < 4; ++i) data[dofs++] = 0x55;
         data[dofs++] = 0xE6;
         for (var i = 0; i < 4; ++i) data[dofs++] = 0x00;
         /* Name */
         for (var i = 0; i < 25; ++i) {
             cs0 += data[dofs++] = i < name.length ? name.charCodeAt(i) : 0x20;
         }
-        data[dofs++] = data[dofs++] = 0; 
+        data[dofs++] = data[dofs++] = 0;
         /* High nibble of org address */
         cs0 += data[dofs++] = 0xff & (org >> 8); /* TODO: fix misaligned org */
         /* Block count */
@@ -272,7 +331,7 @@ TapeFormat.prototype.v06c_rom = function(mem, org, name) {
     return this;
 };
 
-/* Vector-06C BASIC CAS 
+/* Vector-06C BASIC CAS
  * CAS is a pre-formatted BAS/MON/whatever file, only needs a preamble
  */
 TapeFormat.prototype.v06c_cas = function(mem, org, name) {
@@ -366,7 +425,7 @@ TapeFormat.prototype.v06c_edasm = function(mem, org, name) {
     var l = mem.length;
     data[dofs++] = nibbler(l & 0xff);
     data[dofs++] = nibbler((l >> 8) & 0xff);
-    
+
     var fecksum = 0;
     for (var i = 0; i < mem.length; ++i) {
         data[dofs++] = mem[i];
@@ -395,7 +454,7 @@ TapeFormat.prototype.v06c_savedos = function(mem, org, name) {
     /* Start addr big-endian */
     data[dptr++] = (org >> 8) & 0xff;
     data[dptr++] = org & 0xff;
-    /* End addr big-endian */ 
+    /* End addr big-endian */
     data[dptr++] = ((org + mem.length - 1) >> 8) & 0xff;
     data[dptr++] = (org + mem.length - 1) & 0xff;
 
@@ -445,18 +504,18 @@ TapeFormat.prototype.krista = function(mem, org, name) {
     cs += data[dofs++] = 0xff & (startblock + nblocks);
     data[dofs++] = cs;
     //data[dofs++] = data[dofs++] = 0;
-    
+
     /* Blocks */
     for (var block = startblock; block < startblock + nblocks; ++block) {
         cs = 0;
 
         /* Block preamble */
-        for (var i = 0; i < 16; ++i) data[dofs++] = 0x55;  
+        for (var i = 0; i < 16; ++i) data[dofs++] = 0x55;
         data[dofs++] = 0xE6;
         data[dofs++] = block; /* hi byte of block address */
         data[dofs++] = 0;     /* low byte of block address */
         data[dofs++] = 0;     /* payload size + 1 */
-        
+
         /* Data: 256 octets */
         for (var i = 0; i < 256; ++i) {
             cs += data[dofs++] = sofs < mem.length ? mem[sofs++] : 0;
@@ -467,7 +526,7 @@ TapeFormat.prototype.krista = function(mem, org, name) {
     return this;
 };
 
-/* Специалистъ: 
+/* Специалистъ:
  * <RAKK_256>,0E6H,0D9H,0D9H,0D9H,<ASCII_NAME>,
  * <RAKK_768>,0E6H,<ADR_BEG>,<ADR_END>,<BIN_CODE>,<CHECK_SUM>
  */
@@ -493,7 +552,7 @@ TapeFormat.prototype.specialist = function(mem, org, name) {
                 data[dptr++] = name.charCodeAt(i);
             }
         }
-        
+
         for (var i = 0; i < 768; ++i) {
             data[dptr++] = 0;
         }
@@ -539,8 +598,8 @@ TapeFormat.prototype.specialist = function(mem, org, name) {
 
 
 module.exports = {
-    TapeFormat: function(fmt, forfile, konst) {
-        return new TapeFormat(fmt, forfile, konst);
+    TapeFormat: function(fmt, forfile, konst, leader, sampleRate) {
+        return new TapeFormat(fmt, forfile, konst, leader, sampleRate);
     }
 };
 
