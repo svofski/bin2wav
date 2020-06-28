@@ -29,6 +29,7 @@ $ npm install -g
 |v06c-mon        |Вектор-06ц MON |
 |v06c-edasm      |Вектор-06ц EDASM |
 |v06c-savedos    |Вектор-06ц SAVEDOS |
+|v06c-loadfm     |Вектор-06ц loadfm by ivagor |
 |krista-rom      |Криста-2 |
 |specialist-rks  |Специалист .RKS |
 |specialist-mon  |Специалист .MON |

@@ -63,6 +63,10 @@ var TapeFormat = function(fmt, forfile, konst, leader, sampleRate) {
             this.format = TapeFormat.prototype.v06c_savedos;
             this.speed = konst || 9;
             break;
+        case 'v06c-loadfm':
+            this.format = TapeFormat.prototype.v06c_loadfm;
+            this.speed = 5;
+            break;
         case 'krista-rom':
             this.format = TapeFormat.prototype.krista;
             this.speed = konst || 7;
@@ -329,6 +333,118 @@ TapeFormat.prototype.v06c_rom = function(mem, org, name) {
     }
     this.data = data;
     return this;
+};
+
+TapeFormat.prototype.count_bits = function(mem) {
+    var nbits = mem.length * 8;
+};
+
+TapeFormat.prototype.ones_in_byte = function(b) {
+    var count = 0;
+    for (var i = 0; i < 8; ++i, b >>= 1) {
+        count += b & 1;
+    }
+    return count;
+};
+
+TapeFormat.prototype.count_all_ones = function(mem) {
+    var sum = 0;
+    for (var i = 0; i < mem.length; ++i) {
+        sum += this.ones_in_byte(mem[i]);
+    }
+    return sum;
+};
+
+/* ivagor's loadfm format
+ * it's not using biphase encoding so everything here is different */
+TapeFormat.prototype.v06c_loadfm = function(mem, org, name) {
+    var flip = this.count_all_ones(mem) > this.count_bits(mem)/2 ? 255 : 0;
+
+    var first_addr = 0xff & (org >> 8);
+    var nblocks = Math.trunc((mem.length + 255) / 256);
+
+    // 00..ff slow, bit 9 = fast
+    var data = new Int16Array(256 + 4 + 11 + 2 + 255 + (2+256+2) * nblocks + 10);
+    var dofs = 0;
+
+    // preamble: 256 slow ffs
+    for (var i = 0; i < 256; ++i) data[dofs++] = 0xff;
+    data[dofs++] = 0xe6;
+    data[dofs++] = 'F'.charCodeAt(0);
+    data[dofs++] = 'M'.charCodeAt(0);
+    data[dofs++] = '9'.charCodeAt(0);
+    data[dofs++] = 5;
+
+    // header:   11[filenameext] [first block addr] [block count]
+    for (var i = 0; i < 11; ++i) data[dofs++] = name.charCodeAt(i) || 0x20;
+    data[dofs++] = first_addr;
+    data[dofs++] = nblocks;
+
+    // preamble outro: 255 slow 0xff
+    for (var i = 0; i < 255; ++i) data[dofs++] = 0xff;
+
+    var cs = 0;
+
+    // blocks
+    var addr = 0;
+    for (var block = 0; block < nblocks; ++block) {
+        data[dofs++] = 0xff;
+        data[dofs++] = 0xe6;
+        for (var i = 0; i < 256; ++i) {
+            var outval = 0xff & (flip ^ mem[addr++]);
+            cs = 0xff & (cs + outval);
+            data[dofs++] = 0x100 | outval;  // payload bytes are fastbytes
+        }
+    }
+    data[dofs++] = cs;      // checksum
+    data[dofs++] = flip;    // flip all bits
+
+    return {
+        data: data,
+        invert: 0,
+        sampleRate: this.sampleRate,
+
+        fmbyte: function(octet, speeds) {
+            var w = new Uint8Array(8 * 6 + 2);
+            var wofs = 0;
+
+            // SYNC
+            w[wofs++] = w[wofs++] = this.invert * 255;
+            this.invert ^= 1;
+
+            // BYTE
+            for (var i = 0; i < 8; ++i, octet <<= 1) {
+                var msb = (octet & 0x80) >> 7;
+                for (var q = 0; q < speeds[msb]; ++q) {
+                    w[wofs++] = this.invert * 255;
+                }
+                this.invert ^= 1;
+            }
+
+            return w.slice(0, wofs);
+        },
+
+        makewav: function() {
+            var encoded = new Uint8Array(this.data.length * 8 * 6);
+            var eofs = 0;
+            for (var i = 0; i < this.data.length; ++i) {
+                var msg = this.data[i];
+                var wave = new Uint8Array(0);
+                var speed = (msg & 0x100) ? [2,5] : [3,6];
+                wave = this.fmbyte(msg & 0xff, speed);
+
+                for (var q = 0; q < wave.length; ++q) {
+                    encoded[eofs++] = wave[q];
+                }
+            }
+            encoded = encoded.slice(0, eofs);
+
+            var params = {sampleRate: this.sampleRate, channels: 1};
+            var wav = wavmodule.Wav(params);
+            wav.setBuffer(encoded);
+            var stream = wav.getBuffer(encoded.length + wav.getHeaderSize());
+            return stream;
+        }};
 };
 
 /* Vector-06C BASIC CAS

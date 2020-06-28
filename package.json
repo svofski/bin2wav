@@ -1,6 +1,6 @@
 {
   "name": "bin2wav",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "bin to wav for exUSSR 8-bit home computers",
   "main": "bin2wav.js",
   "bin": {
