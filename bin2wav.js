@@ -92,7 +92,8 @@ try {
     console.log('   v06c-mon        Вектор-06ц MON');
     console.log('   v06c-edasm      Вектор-06ц EDASM');
     console.log('   v06c-savedos    Вектор-06ц SAVEDOS');
-    console.log('   v06c-loadfm     Вектор-06ц turbo loadfm (disregards -c, requires -r 44100)');
+    console.log('   v06c-loadfm     Вектор-06ц turbo loadfm (forces -r 44100)');
+    console.log('   v06c-turbo      Вектор-06ц turbo loadfm with loader (forces -r 44100)');
     console.log('   krista-rom      Криста-2');
     console.log('   specialist-rks  Специалист .RKS');
     console.log('   specialist-mon  Специалист .MON');
