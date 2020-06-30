@@ -99,13 +99,6 @@ try {
     console.log('   specialist-mon  Специалист .MON');
     process.exit(0);
 }
-console.log('Input file:    ', romFile);
-console.log('Output file:   ', outFile);
-console.log('Load address:  ', "0x" + loadAddr.toString(16));
-console.log('Tape name:     ', tapeName);
-console.log('Tape format:   ', machine);
-console.log('Leader length: ', leader_length);
-console.log('Sample rate:   ', sampleRate);
 
 try {
     var romData = fs.readFileSync(romFile);
@@ -113,7 +106,25 @@ try {
     console.log('Error reading input file: ', romFile);
     process.exit(1);
 }
-var vectortape = tapeformat.TapeFormat(machine, false, konst, leader_length, sampleRate);
+
+var vectortape = false;
+try {
+    vectortape = tapeformat.TapeFormat(machine, false, konst, leader_length, sampleRate);
+} catch(numberwang) {
+    if (!vectortape) {
+        console.log(numberwang);
+        console.log('Could not create TapeFormat with specified parameters');
+        process.exit(1);
+    }
+}
+
+console.log('Input file:    ', romFile);
+console.log('Output file:   ', outFile);
+console.log('Load address:  ', "0x" + loadAddr.toString(16));
+console.log('Tape name:     ', tapeName);
+console.log('Tape format:   ', machine);
+console.log('Leader length: ', leader_length);
+console.log('Sample rate:   ', vectortape.sampleRate);
 console.log('Speed:         ', vectortape.speed);
 var wav = vectortape.format(romData, loadAddr, tapeName).makewav();
 

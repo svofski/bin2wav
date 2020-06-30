@@ -94,6 +94,8 @@ var TapeFormat = function(fmt, forfile, konst, leader, sampleRate) {
             this.speed = konst || 9;
             this.variant = "name-header";
             break;
+        default:
+            throw 'Unknown format: ' + fmt;
     }
     this.makewav = TapeFormat.prototype.makewav;
     return this;
@@ -348,7 +350,7 @@ TapeFormat.prototype.v06c_rom = function(mem, org, name) {
 };
 
 TapeFormat.prototype.count_bits = function(mem) {
-    var nbits = mem.length * 8;
+    return mem.length * 8;
 };
 
 TapeFormat.prototype.ones_in_byte = function(b) {
@@ -370,7 +372,12 @@ TapeFormat.prototype.count_all_ones = function(mem) {
 /* ivagor's loadfm format
  * it's not using biphase encoding so everything here is different */
 TapeFormat.prototype.v06c_loadfm = function(mem, org, name) {
-    var flip = this.count_all_ones(mem) > this.count_bits(mem)/2 ? 255 : 0;
+    // loadfm supports byte inversion to save on bit times, but
+    // it's impossible in the current autostarting version
+    // var flip = this.count_all_ones(mem) > this.count_bits(mem)/2 ? 255 : 0;
+    // console.log("total_bits=", this.count_bits(mem), "ones=", this.count_all_ones(mem), "flip=", flip);
+    var flip = 0;
+    //
 
     var first_addr = 0xff & (org >> 8);
     var nblocks = Math.trunc((mem.length + 255) / 256);
@@ -751,6 +758,7 @@ TapeFormat.prototype.specialist = function(mem, org, name) {
 
 // hexdump -e ' 16/1 "0x%02x," "\n"' build/autoload.db00
 var loadfm_db00 = [
+0x3e,0xc9,0x32,0x38,0x00,0xfb,0x76,0x3e,0x88,0xd3,0x00,0x01,0x0f,0x00,0x79,0xd3,
 0x02,0x78,0xee,0xad,0xd3,0x0c,0x47,0xd3,0x0c,0xd3,0x0c,0x0d,0xd3,0x0c,0xd3,0x0c,
 0xd3,0x0c,0xf2,0x0e,0xdb,0x3e,0xff,0xd3,0x03,0xc3,0x75,0xdb,0x1e,0x00,0xdb,0x01,
 0x57,0xcd,0x67,0xdb,0x7b,0x8f,0x5f,0xfe,0xe6,0xc2,0x31,0xdb,0xc9,0xc5,0xdb,0x01,
