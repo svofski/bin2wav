@@ -240,7 +240,7 @@ Mov1:
 		dcr c
 		jnz Mov1
 		dcr b
-		jp Mov1
+		jnz Mov1    ; начинаем с b > 0 (счетчик блоков)
 NoMask:
                 mvi a, 3
                 out 0
