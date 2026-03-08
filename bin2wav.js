@@ -94,6 +94,7 @@ try {
     console.log('   v06c-savedos    Вектор-06ц SAVEDOS');
     console.log('   v06c-loadfm     Вектор-06ц turbo loadfm (forces -r 44100)');
     console.log('   v06c-turbo      Вектор-06ц turbo loadfm with loader (forces -r 44100)');
+    console.log('   v06c-bigturbo   Вектор-06ц turbo loadfm with loader, large TPA (forces -r 44100)');
     console.log('   krista-rom      Криста-2');
     console.log('   specialist-rks  Специалист .RKS');
     console.log('   specialist-mon  Специалист .MON');

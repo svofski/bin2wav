@@ -1,4 +1,4 @@
-;Иван Городецкий, Уфа, 2016
+R;Иван Городецкий, Уфа, 2016
 ; Адаптация для использования при подключенном ПЗУ загрузчика и автозагрузкой
 ; Вячеслав Славинский, С.-Петербург, 2020
 
@@ -9,8 +9,13 @@
 ;               DCA8..DCB2 - столбик (см. Around2)
 ;               DCEA..     - здесь находится переписанное содержимое стека
 
+; 08.03.2026 добавлено перемещение загрузчика в адреса $fc00, максимальный
+;            размер загружаемой программы 64240 байт
+
                 .project loadfm-db00
                 ;.tape v06c-rom
+
+OFFSET          .equ $2100
 
 col             equ 173
 
@@ -41,8 +46,7 @@ colorset1:	mov	a, c
 		mvi	a,255
 		out	3
 		
-		
-		jmp     Restart
+		jmp     Restart0
 		
 ;;; релокашки	
 WaitSync:
@@ -50,12 +54,12 @@ WaitSync:
 		in 01
 		mov d,a		
 WaitSyncLoop:		
-		call GetBitSlow
+		call GetBitSlow + OFFSET
 		mov a,e
 		adc a
 		mov e,a
 		cpi 0E6h
-		jnz WaitSyncLoop
+		jnz WaitSyncLoop + OFFSET
 		ret
 ;;;
 GetByte:
@@ -65,14 +69,14 @@ GetByte:
 		jz $-3
 		mov d,a
 		xthl\ xthl
-		call GetBitSlow\ mov a,a;  \ adc a\ mov e,a
-		call GetBitSlowY;\ mov a,e\ adc a\ mov e,a
-		call GetBitSlowX;\ mov a,e\ adc a\ mov e,a
-		call GetBitSlowX;\ mov a,e\ adc a\ mov e,a
-		call GetBitSlowX;\ mov a,e\ adc a\ mov e,a
-		call GetBitSlowX;\ mov a,e\ adc a\ mov e,a
-		call GetBitSlowX;\ mov a,e\ adc a\ mov e,a
-		call GetBitSlowX\ mov a,e\ adc a
+		call GetBitSlow + OFFSET\ mov a,a;  \ adc a\ mov e,a
+		call GetBitSlowY + OFFSET;\ mov a,e\ adc a\ mov e,a
+		call GetBitSlowX + OFFSET;\ mov a,e\ adc a\ mov e,a
+		call GetBitSlowX + OFFSET;\ mov a,e\ adc a\ mov e,a
+		call GetBitSlowX + OFFSET;\ mov a,e\ adc a\ mov e,a
+		call GetBitSlowX + OFFSET;\ mov a,e\ adc a\ mov e,a
+		call GetBitSlowX + OFFSET;\ mov a,e\ adc a\ mov e,a
+		call GetBitSlowX + OFFSET\ mov a,e\ adc a
 		pop b
 		ret
 GetBitSlowX:    mov a, e
@@ -83,7 +87,7 @@ Level1_
 		inr b
 		in 01
 		cmp d
-		jz  Level1_
+		jz  Level1_ + OFFSET
 		mov d,a
 		mvi a,05h
 		cmp b
@@ -91,46 +95,47 @@ Level1_
 ;;;
 		
 Restart:
-		lxi	h,0E000h
-		sphl
+		lxi	h,0fe00h        ; TODO: nice clear screen
+		;sphl
+		nop
 		xra	a
 ClrScr:
 		mov	m,a
 		inx	h
 		cmp	h
-		jnz	ClrScr
+		jnz	ClrScr + OFFSET
 
 ResetRead:
 		;mvi e,00h
-		call WaitSync
-		call GetByte
+		call WaitSync + OFFSET
+		call GetByte + OFFSET
 		cpi 'F'
-		jnz ResetRead
-		call GetByte
+		jnz ResetRead + OFFSET
+		call GetByte + OFFSET
 		cpi 'M'
-		jnz ResetRead
-		call GetByte
+		jnz ResetRead + OFFSET
+		call GetByte + OFFSET
 		cpi '9'
-		jnz ResetRead
-		call GetByte
-		sta GetBlock+2
+		jnz ResetRead + OFFSET
+		call GetByte + OFFSET
+		sta GetBlock+2 + OFFSET
 		mvi c,11
 GetName:
-                jmp Around1
+                jmp Around1 + OFFSET
                 db 0,0
                 db 0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0x81,0x81
 Around1:
-		call GetByte
+		call GetByte + OFFSET
 		dcr c
-		jnz GetName
-		call GetByte		;Первый блок
+		jnz GetName + OFFSET
+		call GetByte + OFFSET	;Первый блок
 		ora a
-		jz ResetRead
+		jz ResetRead + OFFSET
 ;		inr a
 		mov l,a
 		mvi h,0FEh
 		mov m,h
-		call GetByte		;Число блоков
+		call GetByte + OFFSET		;Число блоков
 		mov b,a
 		add l
 		dcr a
@@ -139,7 +144,7 @@ Around1:
 		mov m,h
 		mov h,c
 		xra a
-		sta SetCSUM+1
+		sta SetCSUM+1 + OFFSET
 		mov l,a
 		mov c,a
 		push b
@@ -147,53 +152,53 @@ Around1:
 GetBlock:
 		push b
 		mvi c,0 ; VAR!
-		call WaitSync
+		call WaitSync + OFFSET
 GetBlockLoop:
 		in 01
 		cmp d
-		jz $-3
+		jz $-3 + OFFSET
 		mov d,a
 		;nop\ nop\ nop\ nop
 		;nop\ nop\ nop\ nop
 		mov d, a ; a slow nop
 
 		mvi b,0\ inr b\ in 01\ cmp d
-		jz $-4
+		jz $-4 + OFFSET
 		mov d,a\ mov a,c\ cmp b
 		mov a,a\ adc a\ mov e,a
 
 		mvi b,0\ inr b\ in 01\ cmp d
-		jz $-4
+		jz $-4 + OFFSET
 		mov d,a\ mov a,c\ cmp b
 		mov a,e\ adc a\ mov e,a
 
 		mvi b,0\ inr b\ in 01\ cmp d
-		jz $-4
+		jz $-4 + OFFSET
 		mov d,a\ mov a,c\ cmp b
 		mov a,e\ adc a\ mov e,a
 
 		mvi b,0\ inr b\ in 01\ cmp d
-		jz $-4
+		jz $-4 + OFFSET
 		mov d,a\ mov a,c\ cmp b
 		mov a,e\ adc a\ mov e,a
 
 		mvi b,0\ inr b\ in 01\ cmp d
-		jz $-4
+		jz $-4 + OFFSET
 		mov d,a\ mov a,c\ cmp b
 		mov a,e\ adc a\ mov e,a
 
 		mvi b,0\ inr b\ in 01\ cmp d
-		jz $-4
+		jz $-4 + OFFSET
 		mov d,a\ mov a,c\ cmp b
 		mov a,e\ adc a\ mov e,a
 
 		mvi b,0\ inr b\ in 01\ cmp d
-		jz $-4
+		jz $-4 + OFFSET
 		mov d,a\ mov a,c\ cmp b
 		mov a,e\ adc a\ mov e,a		
 
 		mvi b,0\ inr b\ in 01\ cmp d
-		jz $-4
+		jz $-4 + OFFSET
 		mov d,a\ mov a,c\ cmp b
 		mov a,e\ adc a
 
@@ -202,9 +207,9 @@ SetCSUM:
 		;mvi e,0
 		;add e
 		adi 0
-		sta SetCSUM+1		
+		sta SetCSUM+1 + OFFSET		
 		inr l
-		jnz GetBlockLoop
+		jnz GetBlockLoop + OFFSET
 		mov l,h
 		mvi h,0FFh
 		mov m,h
@@ -213,14 +218,14 @@ SetCSUM:
 		mvi l,0
 		pop b
 		dcr b
-		jnz GetBlock
+		jnz GetBlock + OFFSET
 ;
-		call GetByte	;контрольная сумма
+		call GetByte + OFFSET	;контрольная сумма
 		mov c,a
-		lda SetCSUM+1
+		lda SetCSUM+1 + OFFSET
 		cmp c
-		jnz Restart
-		call GetByte	;маска инверсии
+		jnz Restart + OFFSET
+		call GetByte + OFFSET	;маска инверсии
 		pop h
 		pop b
 		ora a
@@ -230,7 +235,7 @@ SetCSUM:
 		sta 0
 		shld 1
 
-		jz NoMask
+		jz NoMask + OFFSET
 Mask:
 Mov1:
 		mov a,m
@@ -238,9 +243,9 @@ Mov1:
 		mov m,a
 		inx h
 		dcr c
-		jnz Mov1
+		jnz Mov1 + OFFSET
 		dcr b
-		jnz Mov1    ; начинаем с b > 0 (счетчик блоков)
+		jnz Mov1 + OFFSET    ; начинаем с b > 0 (счетчик блоков)
 NoMask:
                 mvi a, 3
                 out 0
@@ -248,7 +253,7 @@ NoMask:
                 mvi a, $08
 RusLat:         mvi b, 0
                 xri $8
-                jmp Around2
+                jmp Around2 + OFFSET
                 db 0xff,0x00,0xff,0xff,0xff,0xff,0xff,0xff,0x81,0x81        
 Around2:
                 out $1
@@ -256,14 +261,25 @@ BlinkWait
                 lxi h,0 
 BlinkWait2
                 dcr l
-                jnz BlinkWait2
+                jnz BlinkWait2 + OFFSET
                 dcr h
-                jp BlinkWait2
+                jp BlinkWait2 + OFFSET
                 dcr b
-                jnz BlinkWait
-                jmp RusLat
+                jnz BlinkWait + OFFSET
+                jmp RusLat + OFFSET
                 
-                ; 36 пустых байт, вах!
+                ; initial intercept, move everything to $fb00
+Restart0:
+                lxi d, $db00
+                lxi h, $db00 + OFFSET
+                sphl
+copyup_lup:        
+                ldax d \ inx d \ mov m, a \ inx h
+                ;mov a, m \ inx h \ stax d \ inx d
+                mvi a, ($db00 + OFFSET + $200) >> 8
+                cmp h
+                jnz copyup_lup
+                jmp Restart + OFFSET
 		
 		.org $dcea
 		dw $db00,$0101,hook,hook,hook
