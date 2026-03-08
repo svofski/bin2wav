@@ -18,10 +18,10 @@ $ npm install -g
 
 Форматы данных
 --------------
-  |    |    |
-  |---------------|-------|
-  | rk-bin          | Радио 86РК              |
-  | mikrosha-bin    | Микроша                 |  
+|    |    |
+|---------------|-------|
+| rk-bin          | Радио 86РК              |
+| mikrosha-bin    | Микроша                 |  
 |partner-bin     |Партнер |
 |v06c-rom        |Вектор-06ц ROM/R0M/VEC |
 |v06c-cas        |Вектор-06ц CAS |
@@ -31,6 +31,7 @@ $ npm install -g
 |v06c-savedos    |Вектор-06ц SAVEDOS |
 |v06c-loadfm     |Вектор-06ц loadfm by ivagor |
 |v06c-turbo      |Вектор-06ц loadfm by ivagor с автоматическим загрузчиком |
+|v06c-bigturbo   |Вектор-06ц loadfm by ivagor с автоматическим загрузчиком и большой TPA|
 |krista-rom      |Криста-2 |
 |specialist-rks  |Специалист .RKS |
 |specialist-mon  |Специалист .MON |
